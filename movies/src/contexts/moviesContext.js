@@ -1,44 +1,43 @@
 import React, { useState, createContext, useEffect } from "react";
 import { Snackbar, Alert } from "@mui/material";
 
-// Create the context to hold global movie-related state
 export const MoviesContext = createContext(null);
 
 const MoviesContextProvider = (props) => {
-  const [favorites, setFavorites] = useState([]); // List of favorite movies (IDs only)
-  const [mustWatch, setMustWatch] = useState([]); // List of must-watch movies (IDs only)
+  const [favorites, setFavorites] = useState([]);
+  const [mustWatch, setMustWatch] = useState([]);
+  const [reviews, setReviews] = useState([]); // Add reviews state
   const [notification, setNotification] = useState({
     open: false,
     message: "",
-    severity: "success", // Notification type (success, info, etc.)
+    severity: "success",
   });
 
-  // Load favorites and must-watch lists from localStorage when the app starts
+  // Load data from localStorage on initialization
   useEffect(() => {
     const storedFavorites = JSON.parse(localStorage.getItem("favorites")) || [];
     const storedMustWatch = JSON.parse(localStorage.getItem("mustWatch")) || [];
+    const storedReviews = JSON.parse(localStorage.getItem("reviews")) || []; // Load reviews
     setFavorites(storedFavorites);
     setMustWatch(storedMustWatch);
+    setReviews(storedReviews); // Initialize reviews state
   }, []);
 
-  // Save the favorites list to localStorage whenever it changes
+  // Update localStorage whenever state changes
   useEffect(() => {
     localStorage.setItem("favorites", JSON.stringify(favorites));
-  }, [favorites]);
-
-  // Save the must-watch list to localStorage whenever it changes
-  useEffect(() => {
     localStorage.setItem("mustWatch", JSON.stringify(mustWatch));
-  }, [mustWatch]);
+    localStorage.setItem("reviews", JSON.stringify(reviews)); // Save reviews
+  }, [favorites, mustWatch, reviews]);
 
-  // Add a movie to favorites or remove it if already in the list
+  // Favorites functions
   const addToFavorites = (movie) => {
     if (!favorites.includes(movie.id)) {
       const updatedFavorites = [...favorites, movie.id];
       setFavorites(updatedFavorites);
       triggerNotification(`${movie.title} added to Favorites!`, "success");
     } else {
-      removeFromFavorites(movie); // Remove if already in favorites
+      removeFromFavorites(movie);
     }
   };
 
@@ -48,14 +47,14 @@ const MoviesContextProvider = (props) => {
     triggerNotification(`${movie.title} removed from Favorites.`, "info");
   };
 
-  // Add a movie to the must-watch list or remove it if already there
+  // Must Watch functions
   const addToMustWatch = (movie) => {
     if (!mustWatch.includes(movie.id)) {
       const updatedMustWatch = [...mustWatch, movie.id];
       setMustWatch(updatedMustWatch);
       triggerNotification(`${movie.title} added to Must Watch!`, "success");
     } else {
-      removeFromMustWatch(movie); // Remove if already in must-watch
+      removeFromMustWatch(movie);
     }
   };
 
@@ -65,12 +64,18 @@ const MoviesContextProvider = (props) => {
     triggerNotification(`${movie.title} removed from Must Watch.`, "info");
   };
 
-  // Show a notification with a given message and severity (e.g., success or info)
+  // Reviews functions
+  const addReview = (movie, review) => {
+    const updatedReviews = [...reviews, { ...review, movieId: movie.id }];
+    setReviews(updatedReviews);
+    triggerNotification(`Review added for ${movie.title}!`, "success");
+  };
+
+  // Snackbar functions
   const triggerNotification = (message, severity) => {
     setNotification({ open: true, message, severity });
   };
 
-  // Close the notification
   const closeNotification = () => {
     setNotification({ ...notification, open: false });
   };
@@ -78,27 +83,24 @@ const MoviesContextProvider = (props) => {
   return (
     <MoviesContext.Provider
       value={{
-        favorites, // Expose the favorites list
-        mustWatch, // Expose the must-watch list
-        addToFavorites, // Add to favorites function
-        removeFromFavorites, // Remove from favorites function
-        addToMustWatch, // Add to must-watch function
-        removeFromMustWatch, // Remove from must-watch function
+        favorites,
+        mustWatch,
+        reviews,
+        addToFavorites,
+        removeFromFavorites,
+        addToMustWatch,
+        removeFromMustWatch,
+        addReview, // Include addReview in context
       }}
     >
       {props.children}
-      {/* Snackbar for showing notifications */}
       <Snackbar
         open={notification.open}
         autoHideDuration={3000}
         onClose={closeNotification}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert
-          onClose={closeNotification}
-          severity={notification.severity}
-          sx={{ width: "100%" }}
-        >
+        <Alert onClose={closeNotification} severity={notification.severity} sx={{ width: "100%" }}>
           {notification.message}
         </Alert>
       </Snackbar>
